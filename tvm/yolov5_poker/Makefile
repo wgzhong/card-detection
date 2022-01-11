@@ -18,14 +18,19 @@
 # Makefile Example to deploy TVM modules.
 TVM_ROOT=$(shell cd ../..; pwd)
 DMLC_CORE=${TVM_ROOT}/3rdparty/dmlc-core
+OPENCV_PATH=/usr/local
+
+LIBS = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs
+# LIBDIRS = -L/usr/local/lib
 
 PKG_CFLAGS = -std=c++14 -O2 -fPIC\
 	-I${TVM_ROOT}/include\
 	-I${DMLC_CORE}/include\
 	-I${TVM_ROOT}/3rdparty/dlpack/include\
+	-I${OPENCV_PATH}/include\
 	-DDMLC_USE_LOGGING_LIBRARY=\<tvm/runtime/logging.h\>
 
-PKG_LDFLAGS = -L${TVM_ROOT}/build -ldl -pthread
+PKG_LDFLAGS = -L${TVM_ROOT}/build -L${OPENCV_PATH}/lib  -ldl -pthread 
 
 .PHONY: clean all
 
@@ -44,7 +49,7 @@ libtvm_runtime_pack.o: tvm_runtime_pack.cc
 # Deploy using the all in one TVM package library
 test_yolov5s: test_yolov5s.cc libtvm_runtime_pack.o
 	@mkdir -p $(@D)
-	$(CXX) $(PKG_CFLAGS) -o $@  $^ $(PKG_LDFLAGS)
+	$(CXX) $(PKG_CFLAGS) -o $@  $^ $(PKG_LDFLAGS) $(LIBS)
 
 clean:
 	rm -rf lib

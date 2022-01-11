@@ -4,7 +4,7 @@ import tvm
 from tvm import relay
 from tvm.contrib import graph_runtime
 import numpy as np
-import onnx
+from tvm.contrib import utils
 from general import non_max_suppression
 import time
 from tvm.contrib import graph_executor
@@ -99,8 +99,10 @@ def reauslt(out_deploy):
 def run():
     img_size = 640
     img = load_image('./cam_image38.jpg', img_size)
-    # graph, lib, params = load_three_part("./yolo5s_poker.json", "./yolo5s_poker.so", "./yolo5s_poker.params")
-    mod_lib = load_graph_lib("./relay_yolov5s.so")
+    # graph, lib, params = load_three_part("./yolo5s_poker.json", "./yolo5s_poker.tar", "./yolo5s_poker.params")
+    # mod_lib = load_graph_lib("./relay_yolov5s.so")
+    mod_lib = tvm.runtime.load_module("relay_yolov5s.tar")
+
     start = time.time()
     output = run_cpu_lib(mod_lib, "YOLOV5S", img)
     # output = run_cpu(graph, lib, params, img)
