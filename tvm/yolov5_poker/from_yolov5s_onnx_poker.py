@@ -55,7 +55,7 @@ def load_image(path, size):
     return img
 
 def from_onnx_yolov5s(model_path, img):
-    model = onnx.load('./best.onnx')
+    model = onnx.load(model_path)
     input_name = 'images' 
     shape_dict = {input_name: img.shape}
     print(shape_dict)
@@ -74,6 +74,7 @@ def export_so(mod, params, tar):
         compiled_lib.export_library("relay_yolov5s.so")
     else:
         compiled_lib.export_library("relay_yolov5s.so", cc="/usr/bin/arm-linux-gnueabihf-g++")
+    exit(0)
 
 def export_three_part(mod, params, tar):
     if tar == "llvm":
@@ -93,6 +94,7 @@ def export_three_part(mod, params, tar):
     param_path = "./yolo5s_poker.params"
     with open(param_path, 'wb') as fo:
         fo.write(relay.save_param_dict(params))
+    exit(0)
 
 def run_cpu(mod, params, data):
     target = "llvm"
@@ -121,9 +123,9 @@ def run():
     # target = tvm.target.arm_cpu("rasp3b")
     target = "llvm"
     img_size = 640
-    img = load_image('./cam_image38.jpg', img_size)
+    img = load_image('/home/vastai/zwg/datasets/poker_all/test/扑克牌_927.jpg', img_size)
     mod, params = from_onnx_yolov5s("./best.onnx", img)
-    # export_so(mod, params, target)
+    export_so(mod, params, target)
     # export_three_part(mod, params, target)
     output = run_cpu(mod, params, img)
     reauslt(output)

@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstdio>
 #include <dlpack/dlpack.h>
 #include <tvm/runtime/module.h>
@@ -9,12 +10,21 @@
 #include <unistd.h> 
 #include <vector>
 #include <algorithm>
-#include<iostream>
-#include<opencv2/opencv.hpp>
+#include <opencv2/core.hpp> 
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgcodecs.hpp> 
+#include <opencv2/highgui.hpp>
+
+#include "test_uart.h"
+#include "test_opencv.h"
 
 #define IMAGE_WIDTH 640
 #define IMAGE_HIGHT 640
 #define IMAGE_DEPTH 3
+
+#define CONF_THRES 0.25
+#define IOU_THRES 0.6
+#define MAX_NUM 3000
  struct bbox{
     float x1;
     float y1;
@@ -94,8 +104,7 @@ void Mat_to_CHW(cv::Mat &input_frame, float *data, int w, int h)
     }
 }
 
-void read_image(std::string path, float *data){
-    cv::Mat src=cv::imread(path);
+void process_image(cv::Mat src, float *data){
     cv::Mat dst, input;
     letterbox(src, dst, IMAGE_WIDTH, IMAGE_HIGHT);
     cv::cvtColor(dst, input, cv::COLOR_BGR2RGB);
@@ -197,7 +206,9 @@ void non_max_suppression(float *data, std::vector<ground_truth> &output,  float 
     std::vector<int> idx = argsort(gt_v);
     while(idx.size() > 0){
         int k = idx[0];
-        output.push_back(gt_v[k]);
+        if(gt_v[k].class_prob > conf_thres){
+            output.push_back(gt_v[k]);
+        }
         std::vector<int> idx_tmp;
         for(int i = 1; i < idx.size(); i++){
             float iou = soft_iou(gt_v[k].box, gt_v[idx[i]].box);
@@ -237,9 +248,34 @@ int main(){
     tvm::runtime::PackedFunc set_input = gmod.GetFunction("set_input");
     tvm::runtime::PackedFunc get_output = gmod.GetFunction("get_output");
     tvm::runtime::PackedFunc run = gmod.GetFunction("run");
-
+    CaperaCapture cam(0);
+    uart ser;
+    int fd = ser.uartOpen(-1, "/dev/ttyS0");
+    bool flag = ser.uartInit(fd, 115200, 0, 8, 1, 'N');
+    assert(!flag);
+    char rcv_buf[16];             
+    char send_buf[16];
+    // while (1) //循环读取数据    
+    // {   
+    //     int len = ser.uartRecv(fd, rcv_buf,sizeof(rcv_buf));    
+    //     if(len > 0)    
+    //     {    
+    //         rcv_buf[len] = '\0';    
+    //         LOG(INFO)<<"receive data is "<<rcv_buf;  
+    //         if(1){
+    //             len = ser.uartSend(fd,send_buf,16);    
+    //             if(len < 0)    
+    //                 LOG(INFO)<<"send data failed...";
+    //             }  
+    //     }          
+    // }   
+    ser.uartClose(fd);
     LOG(INFO) << "load data...";
-    read_image("./cam_image38.jpg", data); 
+    cv::Mat src;
+    // src=cv::imread("/home/vastai/zwg/datasets/poker_all/test/扑克牌_927.jpg");
+    cam.getimage(src);
+    assert(!src.empty());
+    process_image(src, data); 
     //load_input_hex("./cam_image.bin", data);
     // dump_data<float>(data, "./input_cpp.bin", IMAGE_WIDTH * IMAGE_HIGHT * IMAGE_DEPTH*4);//float
     memcpy(x->data, data, IMAGE_DEPTH * IMAGE_WIDTH * IMAGE_HIGHT*4);
@@ -249,7 +285,7 @@ int main(){
     run();
     get_output(0, y);
     float* result = static_cast<float*>(y->data);
-    non_max_suppression(result, output, 0.001, 0.6, 3000, class_num, output_shape);
+    non_max_suppression(result, output, CONF_THRES, IOU_THRES, MAX_NUM, class_num, output_shape);
     for(int i=0;i<output.size();i++){
         LOG(INFO)<<output[i].class_prob<<" label= "<<output[i].label_idx << " classes= " << label[output[i].label_idx];
     }

@@ -18,16 +18,16 @@
 # Makefile Example to deploy TVM modules.
 TVM_ROOT=$(shell cd ../..; pwd)
 DMLC_CORE=${TVM_ROOT}/3rdparty/dmlc-core
-OPENCV_PATH=/usr/local
+OPENCV_PATH=`pkg-config opencv --cflags`
 
-LIBS = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs
-# LIBDIRS = -L/usr/local/lib
+LIBS = `pkg-config opencv --libs` 
 
+#g++ `pkg-config opencv --cflags` opencv.cpp  -o opencv `pkg-config opencv --libs`
 PKG_CFLAGS = -std=c++14 -O2 -fPIC\
 	-I${TVM_ROOT}/include\
 	-I${DMLC_CORE}/include\
 	-I${TVM_ROOT}/3rdparty/dlpack/include\
-	-I${OPENCV_PATH}/include\
+	-I${OPENCV_PATH}\
 	-DDMLC_USE_LOGGING_LIBRARY=\<tvm/runtime/logging.h\>
 
 PKG_LDFLAGS = -L${TVM_ROOT}/build -L${OPENCV_PATH}/lib  -ldl -pthread 
@@ -47,9 +47,9 @@ libtvm_runtime_pack.o: tvm_runtime_pack.cc
 # 	python3 prepare_test_libs.py
 
 # Deploy using the all in one TVM package library
-test_yolov5s: test_yolov5s.cc libtvm_runtime_pack.o
+test_yolov5s: test_yolov5s.cc libtvm_runtime_pack.o 
 	@mkdir -p $(@D)
 	$(CXX) $(PKG_CFLAGS) -o $@  $^ $(PKG_LDFLAGS) $(LIBS)
 
 clean:
-	rm -rf lib
+	rm -rf test_yolov5s *.o
