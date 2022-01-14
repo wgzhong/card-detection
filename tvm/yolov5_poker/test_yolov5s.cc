@@ -22,7 +22,7 @@
 #define IMAGE_HIGHT 640
 #define IMAGE_DEPTH 3
 
-#define CONF_THRES 0.25
+#define CONF_THRES 0.025
 #define IOU_THRES 0.6
 #define MAX_NUM 3000
  struct bbox{
@@ -80,7 +80,7 @@ void letterbox(cv::Mat image, cv::Mat &output, int new_w, int new_h){
     int dw = (new_w - new_uppad_w) / 2;
     int dh = (new_h - new_uppad_h) / 2;
     cv::Mat resize_image;
-    if((new_w != new_uppad_w) || (new_h != new_uppad_h)){
+    if((w != new_uppad_w) || (h != new_uppad_h)){
         cv::resize(image, resize_image, cv::Size(new_uppad_w, new_uppad_h));
     }
     if(resize_image.empty()){
@@ -235,7 +235,7 @@ int main(){
     DLDevice dev{kDLCPU, 0};
     float data[IMAGE_WIDTH * IMAGE_HIGHT * IMAGE_DEPTH];
     std::vector<ground_truth> output;
-    int class_num=24;
+    int class_num=54;
     int dims = 4 + 1 + class_num;//x,y,h,w,confidence,class
     int output_shape=(20*20+40*40+80*80)*3;//三路输出的特征图大小，每个cell有3个检测框
     tvm::runtime::NDArray x = tvm::runtime::NDArray::Empty({1, IMAGE_DEPTH, IMAGE_WIDTH, IMAGE_HIGHT}, DLDataType{kDLFloat, 32, 1}, dev);
@@ -248,47 +248,39 @@ int main(){
     tvm::runtime::PackedFunc set_input = gmod.GetFunction("set_input");
     tvm::runtime::PackedFunc get_output = gmod.GetFunction("get_output");
     tvm::runtime::PackedFunc run = gmod.GetFunction("run");
-    CaperaCapture cam(0);
+    CaperaCapture cam(0, 640, 640);
     uart ser;
-    int fd = ser.uartOpen(-1, "/dev/ttyS0");
-    bool flag = ser.uartInit(fd, 115200, 0, 8, 1, 'N');
-    assert(!flag);
-    char rcv_buf[16];             
-    char send_buf[16];
-    // while (1) //循环读取数据    
-    // {   
-    //     int len = ser.uartRecv(fd, rcv_buf,sizeof(rcv_buf));    
-    //     if(len > 0)    
-    //     {    
-    //         rcv_buf[len] = '\0';    
-    //         LOG(INFO)<<"receive data is "<<rcv_buf;  
-    //         if(1){
-    //             len = ser.uartSend(fd,send_buf,16);    
-    //             if(len < 0)    
-    //                 LOG(INFO)<<"send data failed...";
-    //             }  
-    //     }          
-    // }   
-    ser.uartClose(fd);
-    LOG(INFO) << "load data...";
     cv::Mat src;
-    // src=cv::imread("/home/vastai/zwg/datasets/poker_all/test/扑克牌_927.jpg");
-    cam.getimage(src);
-    assert(!src.empty());
-    process_image(src, data); 
-    //load_input_hex("./cam_image.bin", data);
-    // dump_data<float>(data, "./input_cpp.bin", IMAGE_WIDTH * IMAGE_HIGHT * IMAGE_DEPTH*4);//float
-    memcpy(x->data, data, IMAGE_DEPTH * IMAGE_WIDTH * IMAGE_HIGHT*4);
-    // set the right input
-    long start_time = getTimeUsec();
-    set_input("images", x);
-    run();
-    get_output(0, y);
-    float* result = static_cast<float*>(y->data);
-    non_max_suppression(result, output, CONF_THRES, IOU_THRES, MAX_NUM, class_num, output_shape);
-    for(int i=0;i<output.size();i++){
-        LOG(INFO)<<output[i].class_prob<<" label= "<<output[i].label_idx << " classes= " << label[output[i].label_idx];
-    }
-    printf("time is: %d ms\n", (getTimeUsec() - start_time) / 1000);
+    bool flag = ser.uartInit("/dev/ttyAMA0", 115200);
+    assert(!flag);
+    char *rcv_buf = new char[16];             
+    char send_buf[16]={0x12, 0x13, 0x14, 0x12, 0x13, 0x14, 0x12, 0x13, 0x14, 0x12, 0x13, 0x14};
+    while (1) //循环读取数据    
+    {   
+        int len = ser.uartRecv(rcv_buf);     
+        if(len>0 && rcv_buf[0]==0x01){   
+            // src=cv::imread("./src2.jpg");
+            cam.getimage(src);
+            assert(!src.empty());
+            cv::imwrite("src.jpg", src);
+            process_image(src, data); 
+            //load_input_hex("./cam_image.bin", data);
+            // dump_data<float>(data, "./input_cpp.bin", IMAGE_WIDTH * IMAGE_HIGHT * IMAGE_DEPTH*4);//float
+            memcpy(x->data, data, IMAGE_DEPTH * IMAGE_WIDTH * IMAGE_HIGHT*4);
+            // set the right input
+            long start_time = getTimeUsec();
+            set_input("images", x);
+            run();
+            get_output(0, y);
+            float* result = static_cast<float*>(y->data);
+            non_max_suppression(result, output, CONF_THRES, IOU_THRES, MAX_NUM, class_num, output_shape);
+            for(int i=0;i<output.size();i++){
+                LOG(INFO)<<output[i].class_prob<<" label= "<<output[i].label_idx << " classes= " << label[output[i].label_idx];
+            }
+            LOG(INFO)<<"time is: "<<(getTimeUsec() - start_time) / 1000<<" ms";
+            ser.uartSend(send_buf, 16);
+            memset(rcv_buf, 0, 16); 
+        }          
+    }   
     return 0;
 }

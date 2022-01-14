@@ -22,13 +22,14 @@ from torch.cuda import amp
 from torch.optim import Adam, SGD, lr_scheduler
 from tqdm import tqdm
 
-
+from visdom import Visdom
 import val  # for end-of-epoch mAP
 from util import *
 from models.yolo import Model
 from callbacks import Callbacks
 from datasets import create_dataloader
 from loss import ComputeLoss
+
 
 def train(hyp,  # path/to/hyp.yaml or hyp dictionary
           opt,
@@ -200,6 +201,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 f'Using {train_loader.num_workers} dataloader workers\n'
                 f"Logging results to {'bold', save_dir}\n"
                 f'Starting training for {epochs} epochs...')
+    viz = Visdom()
+    viz.line([[0.,0.,0.]], win='train', opts=dict(title='loss', legend=['loss0', 'loss1', 'loss2']))
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
@@ -250,7 +253,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
             # Backward
             scaler.scale(loss).backward()
-
+            
             # Optimize
             if ni - last_opt_step >= accumulate:
                 scaler.step(optimizer)  # optimizer.step
@@ -262,6 +265,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
 
             # Log
             mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
+            viz.line([[mloss[0], mloss[1], mloss[2]]], [epoch], win='train', update='append')
             mem = f'{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G'  # (GB)
             pbar.set_description(('%10s' * 2 + '%10.4g' * 5) % (
                 f'{epoch}/{epochs - 1}', mem, *mloss, targets.shape[0], imgs.shape[-1]))

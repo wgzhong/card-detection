@@ -30,7 +30,7 @@ PKG_CFLAGS = -std=c++14 -O2 -fPIC\
 	-I${OPENCV_PATH}\
 	-DDMLC_USE_LOGGING_LIBRARY=\<tvm/runtime/logging.h\>
 
-PKG_LDFLAGS = -L${TVM_ROOT}/build -L${OPENCV_PATH}/lib  -ldl -pthread 
+PKG_LDFLAGS = -L${TVM_ROOT}/build -L${OPENCV_PATH}/lib  -ldl -pthread -l wiringPi
 
 .PHONY: clean all
 

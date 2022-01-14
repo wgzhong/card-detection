@@ -86,7 +86,7 @@ def run_cpu_lib(graph_lib, name, data):
     m.run()
     out_deploy = m.get_output(0).asnumpy()
     out_deploy = torch.from_numpy(out_deploy)
-    print(out_deploy.shape)
+    print(out_deploy)
     return out_deploy
 
 def reauslt(out_deploy):
@@ -98,10 +98,10 @@ def reauslt(out_deploy):
 
 def run():
     img_size = 640
-    img = load_image('./cam_image38.jpg', img_size)
+    img = load_image('./src2.jpg', img_size)
     # graph, lib, params = load_three_part("./yolo5s_poker.json", "./yolo5s_poker.tar", "./yolo5s_poker.params")
-    # mod_lib = load_graph_lib("./relay_yolov5s.so")
-    mod_lib = tvm.runtime.load_module("relay_yolov5s.tar")
+    mod_lib = load_graph_lib("./relay_yolov5s.so")
+    # mod_lib = tvm.runtime.load_module("relay_yolov5s.tar")
 
     start = time.time()
     output = run_cpu_lib(mod_lib, "YOLOV5S", img)

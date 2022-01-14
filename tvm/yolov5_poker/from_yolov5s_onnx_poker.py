@@ -7,6 +7,18 @@ import onnx
 from general import non_max_suppression
 import cv2
 
+def run_auto_quantize_pass(mod, params):
+    with tvm.relay.quantize.qconfig(skip_conv_layers=[0],
+                    nbit_input=8,
+                    nbit_weight=8,
+                    global_scale=8.0,
+                    dtype_input='int8',
+                    dtype_weight='int8',
+                    dtype_activation='int8',
+                    debug_enabled_ops=None):
+        mod = relay.quantize.quantize(mod, params=params)
+    return mod
+
 def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleFill=False, scaleup=True, stride=32):
     # Resize and pad image while meeting stride-multiple constraints
     shape = im.shape[:2]  # current shape [height, width]
@@ -60,6 +72,7 @@ def from_onnx_yolov5s(model_path, img):
     shape_dict = {input_name: img.shape}
     print(shape_dict)
     mod, params = relay.frontend.from_onnx(model, shape_dict)
+    mod = run_auto_quantize_pass(mod, params)
     print(mod)
     return mod, params
 
@@ -74,7 +87,6 @@ def export_so(mod, params, tar):
         compiled_lib.export_library("relay_yolov5s.so")
     else:
         compiled_lib.export_library("relay_yolov5s.so", cc="/usr/bin/arm-linux-gnueabihf-g++")
-    exit(0)
 
 def export_three_part(mod, params, tar):
     if tar == "llvm":
@@ -123,7 +135,7 @@ def run():
     # target = tvm.target.arm_cpu("rasp3b")
     target = "llvm"
     img_size = 640
-    img = load_image('/home/vastai/zwg/datasets/poker_all/test/扑克牌_927.jpg', img_size)
+    img = load_image('./src2.jpg', img_size)
     mod, params = from_onnx_yolov5s("./best.onnx", img)
     export_so(mod, params, target)
     # export_three_part(mod, params, target)
