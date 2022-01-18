@@ -222,6 +222,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         pbar = tqdm(pbar, total=nb)  # progress bar
         optimizer.zero_grad()
         for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
+            viz.images(imgs)
+            
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device, non_blocking=True).float() / 255.0  # uint8 to float32, 0-255 to 0.0-1.0
 
@@ -361,7 +363,7 @@ def parse_opt(known=False):
     parser.add_argument('--hyp', type=str, default='hyp.scratch.yaml', help='hyperparameters path')
     parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs, -1 for autobatch')
-    parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=640, help='train, val image size (pixels)')
+    parser.add_argument('--imgsz', '--img', '--img-size', type=int, default=128, help='train, val image size (pixels)')
     parser.add_argument('--rect', action='store_true', help='rectangular training')
     parser.add_argument('--resume', nargs='?', const=True, default=False, help='resume most recent training')
     parser.add_argument('--nosave', action='store_true', help='only save final checkpoint')
@@ -492,17 +494,8 @@ def main(opt, callbacks=Callbacks()):
                 hyp[k] = min(hyp[k], v[2])  # upper limit
                 hyp[k] = round(hyp[k], 5)  # significant digits
 
-            # Train mutation
-            results = train(hyp.copy(), opt, device, callbacks)
+            train(hyp.copy(), opt, device, callbacks)
 
-            # Write mutation results
-            print_mutation(results, hyp.copy(), save_dir, opt.bucket)
-
-        # Plot results
-        plot_evolve(evolve_csv)
-        print(f'Hyperparameter evolution finished\n'
-                    f"Results saved to {'bold', save_dir}\n"
-                    f'Use best hyperparameters example: $ python train.py --hyp {evolve_yaml}')
 
 
 if __name__ == "__main__":
