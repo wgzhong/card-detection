@@ -453,4 +453,8 @@ CMakeFiles/delopy.dir/src/test_yolov5s.cc.o: \
  /home/wgzhong/tvm/src/runtime/graph_executor/./graph_executor_factory.h \
  /home/wgzhong/tvm/src/runtime/graph_executor/././graph_executor.h \
  /usr/include/c++/7/iterator /usr/include/c++/7/bits/stream_iterator.h \
- /home/wgzhong/card-detection/tvm/yolov5_poker/include/test_opencv.h
+ /home/wgzhong/card-detection/tvm/yolov5_poker/include/test_opencv.h \
+ /home/wgzhong/card-detection/tvm/yolov5_poker/include/util.h \
+ /home/wgzhong/card-detection/tvm/yolov5_poker/include/tool.h \
+ /home/wgzhong/card-detection/tvm/yolov5_poker/include/data_process.h \
+ /home/wgzhong/card-detection/tvm/yolov5_poker/include/cal_time.h

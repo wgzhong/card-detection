@@ -1,4 +1,9 @@
+import os
+import sys
+sys.path.append("/home/wgzhong/card-detection")
+sys.path.append("/home/wgzhong/card-detection/models")
 import torch
+from models.experimental import attempt_load
 import tvm
 from tvm import relay
 from tvm.contrib import graph_runtime
@@ -23,19 +28,20 @@ def load_image(path, size):
     return img
 
 img_size = 640
-img = load_image('../../data/test.jpg', img_size)
-model_weights = torch.load("../runs/exp/weights/best.pt", map_location='cpu')
+img = load_image('../../data/cam_image38.jpg', img_size)
+# model_weights = torch.load("../../data/best.pt", map_location='cpu')
 
-# from collections import OrderedDict
-# new_state_dict = OrderedDict()
-# for k, v in model_weights.items():
-#     name = "model." + k
-#     new_state_dict[name] = v
-                
-model = Model()
+# # from collections import OrderedDict
+# # new_state_dict = OrderedDict()
+# # for k, v in model_weights.items():
+# #     name = "model." + k
+# #     new_state_dict[name] = v
+
+# model = Model()
+# model.eval()
+# model.load_state_dict(model_weights, False)
+model = attempt_load("../../data/best.pt", "cpu")  # load FP32 model
 model.eval()
-model.load_state_dict(model_weights, False)
-
 
 input_data = torch.ones(img.shape)
 scripted_model = torch.jit.trace(model, input_data).eval()       

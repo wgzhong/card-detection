@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -DNDEBUG -shared -Wl,-soname,libdelopy_lib.so -o /exe/libdelopy_lib.so CMakeFiles/delopy_lib.dir/src/test_yolov5s.cc.o 

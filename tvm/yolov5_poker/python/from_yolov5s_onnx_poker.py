@@ -134,10 +134,10 @@ def reauslt(out_deploy):
 def run():
     # target = tvm.target.arm_cpu("rasp3b")
     target = "llvm"
-    img_size = 640
+    img_size = 128
     img = load_image('../../data/cam_image38.jpg', img_size)
     mod, params = from_onnx_yolov5s("../../data/best.onnx", img)
-    export_so(mod, params, target)
+    # export_so(mod, params, target)
     # export_three_part(mod, params, target)
     output = run_cpu(mod, params, img)
     reauslt(output)
