@@ -4,6 +4,10 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgcodecs.hpp> 
 #include <opencv2/highgui.hpp>
+#include <dlpack/dlpack.h>
+#include <tvm/runtime/module.h>
+#include <tvm/runtime/registry.h>
+#include <tvm/runtime/packed_func.h>
 
 struct bbox{
     float x1;
@@ -96,6 +100,7 @@ void non_max_suppression(float *data, std::vector<ground_truth> &output,  float 
         float width = data[n+2];
         float hight = data[n+3];
         float conf = data[n+4];
+        // LOG(INFO)<<center_x<<" "<<center_y<<" "<<width<<" "<<hight<<" "<<conf;
         if(conf < conf_thres){
             continue;
         }
@@ -104,7 +109,7 @@ void non_max_suppression(float *data, std::vector<ground_truth> &output,  float 
         for (int i = n+5; i < n+class_num+5; i++){
             if(data[i] > max_class_conf){
                 max_class_conf = data[i];
-                idx = (i-5) % 29;
+                idx = (i-5) % stride;
             }
         }
         max_class_conf = max_class_conf*conf;
@@ -120,9 +125,12 @@ void non_max_suppression(float *data, std::vector<ground_truth> &output,  float 
         gt_v.push_back(gt);
     }
     std::vector<int> idx = argsort(gt_v);
+    // for(int i=0;i<idx.size();i++){
+    //     LOG(INFO)<<gt_v[idx[i]].class_prob<<" "<<gt_v[idx[i]].label_idx<<" "<<gt_v[idx[i]].box.x1<<" "<<gt_v[idx[i]].box.y1<<" "<<gt_v[idx[i]].box.x2;
+    // }
     while(idx.size() > 0){
         int k = idx[0];
-        if(gt_v[k].class_prob > conf_thres){
+        if(gt_v[k].class_prob > conf_thres && gt_v[k].class_prob > 0.1){
             output.push_back(gt_v[k]);
         }
         std::vector<int> idx_tmp;

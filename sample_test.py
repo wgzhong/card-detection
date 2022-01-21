@@ -29,8 +29,9 @@ def load_image(path, size):
 def run():
     weight_path = "./runs/exp/weights/best.pt"
     device = "cpu"
-    image_path="../datasets/poker/test/cam_image45.jpg"
-    img_size = 640
+    # image_path="/home/wgzhong/datasets/poker_new/train/images/poker_223.jpg"
+    image_path = "/home/wgzhong/datasets/poker_new/train/images/poker_452.jpg"
+    img_size = 128
     conf_thres = 0.001  # confidence threshold
     iou_thres = 0.6  # NMS IoU threshold
 

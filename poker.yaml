@@ -1,6 +1,6 @@
 
 
-path: ../datasets/poker_all  # dataset root dir
+path: ../datasets/poker_new  # dataset root dir
 train: train/images  
 val: train/images  
 test:  # test images (optional)

@@ -2,7 +2,7 @@ weights: yolov5s.pt
 cfg: ''
 data: poker.yaml
 hyp: hyp.scratch.yaml
-epochs: 200
+epochs: 500
 batch_size: 16
 imgsz: 128
 rect: false

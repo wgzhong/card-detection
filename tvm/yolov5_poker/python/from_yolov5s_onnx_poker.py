@@ -6,17 +6,25 @@ import numpy as np
 import onnx
 from general import non_max_suppression
 import cv2
+from utils import *
 
-def run_auto_quantize_pass(mod, params):
-    with tvm.relay.quantize.qconfig(skip_conv_layers=[0],
-                    nbit_input=8,
-                    nbit_weight=8,
-                    global_scale=8.0,
-                    dtype_input='int8',
-                    dtype_weight='int8',
-                    dtype_activation='int8',
-                    debug_enabled_ops=None):
-        mod = relay.quantize.quantize(mod, params=params)
+# def get_calibration_dataset(mod, input_name):
+#     dataset = []
+#     input_shape = [int(x) for x in mod["main"].checked_type.arg_types[0].shape]
+#     for i in range(0):
+#         data = np.random.uniform(size=input_shape)
+#         dataset.append({input_name: data})
+#     return dataset
+
+def run_auto_quantize_pass(mod, params, dataset):
+    import multiprocessing
+    num_cpu = multiprocessing.cpu_count()
+    # dataset = get_calibration_dataset(mod, "images")
+    with relay.quantize.qconfig(calibrate_mode="kl_divergence",
+                                skip_conv_layers=[],
+                                weight_scale="max",
+                                calibrate_chunk_by=num_cpu):
+        mod = relay.quantize.quantize(mod, params, dataset)
     return mod
 
 def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleFill=False, scaleup=True, stride=32):
@@ -66,19 +74,30 @@ def load_image(path, size):
     # img.tofile("letterbox.bin")
     return img
 
-def from_onnx_yolov5s(model_path, img):
+def from_onnx_yolov5s(model_path, img, quant=False):
     model = onnx.load(model_path)
     input_name = 'images' 
     shape_dict = {input_name: img.shape}
     print(shape_dict)
     mod, params = relay.frontend.from_onnx(model, shape_dict)
-    mod = run_auto_quantize_pass(mod, params)
+    net = mod['main']
+    data = tvm.nd.array(img)
+    dataset = [{input_name: data}]
+    # mod = run_auto_quantize_pass(mod, params, dataset) 
+    # if quant:
+    #     data = tvm.nd.array(img)
+    #     dataset = [{input_name: data}]
+    #     qmod, lparams = load_model_from_json("")
+    #     if qmod == None:
+    #         mod = run_auto_quantize_pass(mod, lparams, dataset)
+    #     else:
+    #         mod = qmod
     print(mod)
     return mod, params
 
 def export_so(mod, params, tar):
     if tar == "llvm":
-        target = tvm.target.create('llvm')
+        target = tvm.target.Target("llvm")
     else:
         target = tar
     with tvm.transform.PassContext(opt_level=2):
@@ -90,11 +109,15 @@ def export_so(mod, params, tar):
 
 def export_three_part(mod, params, tar):
     if tar == "llvm":
-        target = tvm.target.create('llvm')
+        target = tvm.target.Target("llvm")
     else:
         target = tar
-    with relay.build_config(opt_level=2):
-        graph, lib, params = relay.build_module.build(mod, target, params=params)
+    # with relay.build_config(opt_level=2):
+    #     graph, lib, params = relay.build_module.build(mod, target, params=params)
+    with tvm.transform.PassContext(opt_level=2):
+        with relay.quantize.qconfig(global_scale=8.0, skip_conv_layers=[0]):
+            mod = relay.quantize.quantize(mod["main"], params=params)
+            graph, lib, params = relay.build_module.build(mod, target, params=params)
     libpath = "./yolo5s_poker.so"
     if tar == "llvm":
         lib.export_library(libpath)
@@ -135,9 +158,10 @@ def run():
     # target = tvm.target.arm_cpu("rasp3b")
     target = "llvm"
     img_size = 128
-    img = load_image('../../data/cam_image38.jpg', img_size)
-    mod, params = from_onnx_yolov5s("../../data/best.onnx", img)
-    # export_so(mod, params, target)
+    quant = False
+    img = load_image('/home/wgzhong/card-detection/tvm/data/a.jpg', img_size)
+    mod, params = from_onnx_yolov5s("/home/wgzhong/card-detection/runs/exp/weights/best.onnx", img, quant)
+    export_so(mod, params, target)
     # export_three_part(mod, params, target)
     output = run_cpu(mod, params, img)
     reauslt(output)
