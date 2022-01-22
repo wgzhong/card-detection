@@ -31,5 +31,5 @@ target_link_libraries(delopy ${OPENCV_LIBS}/libopencv_imgcodecs.so)
 target_link_libraries(delopy ${OPENCV_LIBS}/libopencv_videoio.so)
 target_link_libraries(delopy ${OPENCV_LIBS}/libopencv_video.so)
 
-target_link_libraries(delopy stdc++fs dl pthread) #wiringPi
+target_link_libraries(delopy stdc++fs dl pthread wiringPi) #wiringPi
 

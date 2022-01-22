@@ -7,6 +7,7 @@
 #include <termios.h>    /*PPSIX 终端控制定义*/    
 #include <errno.h>      /*错误号定义*/    
 #include <string.h>    
+#include <wiringSerial.h>
 #include <tvm/runtime/logging.h>
 #include "util.h"
 
@@ -25,7 +26,8 @@ public:
     bool uartInit(char *port, int bound){//"/dev/ttyAMA0"
         struct termios stNew;
         struct termios stOld;
-        fd = open(port, O_RDWR|O_NOCTTY|O_NONBLOCK|O_NDELAY);
+        fd = serialOpen(port,bound); 
+        // fd = open(port, O_RDWR|O_NOCTTY|O_NONBLOCK|O_NDELAY);
         if(-1 == fd)
         {
             LOG(ERROR)<<"Unable to open port serial device: "<<strerror(errno);
