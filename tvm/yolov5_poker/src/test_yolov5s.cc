@@ -1,22 +1,10 @@
-#include <iostream>
-#include <cstdio>
-#include <fstream>
-#include <time.h>
-#include <sys/time.h>    
-#include <unistd.h> 
-#include <vector>
-#include <algorithm>
-#include <opencv2/core.hpp> 
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgcodecs.hpp> 
-#include <opencv2/highgui.hpp>
-
 #include "tvm_runtime_pack.h"
 #include "test_uart.h"
 #include "test_opencv.h"
 #include "tool.h"
 #include "data_process.h"
 #include "cal_time.h"
+
 class entrance{
 float CONF_THRES = 0.025;
 float IOU_THRES = 0.6;
@@ -29,12 +17,12 @@ public:
         m_hight = h;
         m_depth = d;
         m_class_num=54;
+        m_data = new float[m_width * m_hight * m_depth];
         m_dims = 4 + 1 + m_class_num;//x,y,h,w,confidence,class
         // m_output_shape=(20*20+40*40+80*80)*3;//三路输出的特征图大小，每个cell有3个检测框
         m_output_shape = 1008;
         m_dev = {kDLCPU, 0};
-        // m_cam = new CaperaCapture(0, m_width, m_hight);
-        m_data = new float[m_width * m_hight * m_depth];
+        m_cam = new CaperaCapture(0, m_width, m_hight);
         m_x = tvm::runtime::NDArray::Empty({1, m_depth, m_width, m_hight}, DLDataType{kDLFloat, 32, 1}, m_dev);
         m_y = tvm::runtime::NDArray::Empty({1, m_output_shape, m_dims}, DLDataType{kDLFloat, 32, 1}, m_dev);
     }
@@ -49,19 +37,21 @@ public:
         m_run = m_gmod.GetFunction("run");
     }
 
-    void run(){
-        LOG(INFO) << "run model..................";
-        long start_time = getTimeUsec();
-        std::vector<ground_truth> output;
+    void run_cam(){
         cv::Mat input_image;
-        // m_cam->getimage(input_image);
-        input_image=cv::imread("/home/wgzhong/datasets/poker_new/train/images/poker_452.jpg");//test
+        m_cam->getimage(input_image);
+        // input_image=cv::imread("/home/wgzhong/datasets/poker_new/train/images/poker_452.jpg");//test
         assert(!m_input_image.empty());
         process_image(input_image, m_data, m_width, m_hight); 
         //load_input_hex("/home/wgzhong/card-detection/tvm/yolov5_poker/python/cam_image.bin", data);
         // dump_data<float>(m_data, "./input_cpp.bin", m_width * m_hight * m_depth*4);//float
         memcpy(m_x->data, m_data, m_depth * m_width * m_hight*4);
-        m_set_input("images", m_x);
+    }
+    void run(tvm::runtime::NDArray x){
+        LOG(INFO) << "run model..................";
+        long start_time = getTimeUsec();
+        std::vector<ground_truth> output;
+        m_set_input("images", x);
         m_run();
         m_get_output(0, m_y);
         float* result = static_cast<float*>(m_y->data);
@@ -76,6 +66,10 @@ public:
                 LOG(INFO)<<m_output[i].class_prob<<" label= "<<m_output[i].label_idx << " classes= " << m_label[m_output[i].label_idx];
             }
         }
+    }
+    
+    tvm::runtime::NDArray get_x(){
+        return m_x;
     }
 
     std::vector<std::string> get_label(){
@@ -98,15 +92,16 @@ private:
     int m_depth;
 
     std::vector<ground_truth> m_output;
-    tvm::runtime::NDArray m_x;
-    tvm::runtime::NDArray m_y;
     std::vector<std::string> m_label;
     tvm::runtime::Module m_mod_factory;
     tvm::runtime::Module m_gmod;
     tvm::runtime::PackedFunc m_set_input;
     tvm::runtime::PackedFunc m_get_output;
     tvm::runtime::PackedFunc m_run;
-    // CaperaCapture *m_cam;
+    tvm::runtime::NDArray m_x;
+    tvm::runtime::NDArray m_y;
+
+    CaperaCapture *m_cam;
 };
 
 int main(int argc, char **argv){
@@ -122,29 +117,35 @@ int main(int argc, char **argv){
     if(argc == 5){
         test = true;
     }
-    int data_size=32;
-    uart ser(data_size);
+
+    uart *ser = new uart(8, 32);
     entrance enter(width, hight, depth);
-    enter.init("../../data/classes.txt", "../python/relay_yolov5s.so");
+    enter.run_cam();
+    enter.init("./classes.txt", "./relay_yolov5s.so");
     if(test){
-        enter.run();
+        enter.run(enter.get_x());
         enter.print_output();
         return 0;
     }
-
-    bool flag = ser.uartInit("/dev/ttyAMA0", 115200);
-    assert(!flag);             
-    while (1) //循环读取数据    
+    enter.run(enter.get_x());
+    enter.print_output();  
+    bool flag = ser->uartInit((char*)"/dev/ttyAMA0", 115200);
+    assert(!flag); 
+    LOG(INFO)<<"init ok";   
+    
+    while (1)    
     {   
-        bool uart_flag = ser.uartRecv();     
-        if(uart_flag && ser.isCorrect()){   
-            enter.run();
+        enter.run_cam();
+        bool uart_flag = ser->uartRecv();    
+        if(uart_flag && ser->isCorrect()){  
+            enter.run(enter.get_x());
             std::vector<ground_truth> output = enter.get_output();
-               std::vector<std::string> labels = enter.get_label();
-            ser.uartSend(output, labels);
+            std::vector<std::string> labels = enter.get_label();
+            ser->uartSend(output, labels);
             enter.print_output();
-        }          
-        ser.clearData();
+        }           
     }   
     return 0;
 }
+
+

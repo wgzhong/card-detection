@@ -7,7 +7,7 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-set(TVM_PATH /home/wgzhong/tvm)
+set(TVM_PATH /home/pi/tvm)
 set(OPENCV_PATH /usr/local/include)
 set(OPENCV_LIBS /usr/local/lib)
 

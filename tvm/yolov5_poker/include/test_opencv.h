@@ -11,6 +11,7 @@ public:
 		cap.open(video_id);
 		cap.set(CAP_PROP_FRAME_HEIGHT, defatlt_h);
 		cap.set(CAP_PROP_FRAME_WIDTH, defatlt_w);
+		cap.set(CV_CAP_PROP_FPS, 24);
 		if (!cap.isOpened()){
 			LOG(INFO)<<"camera open error.........";
 		}
