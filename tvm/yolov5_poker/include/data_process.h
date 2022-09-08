@@ -45,7 +45,13 @@ std::vector<std::string> read_label(std::string path){
     std::ifstream is(path);
     std::string  line; 
     while(getline(is, line))
-    {
+    {   
+        if(line.empty()){
+            continue;
+        }
+        if(line[line.size()-1] == '\r'){
+            line = line.substr(0, line.size()-1);
+        }
         label.push_back(line); 
     }
     return label;

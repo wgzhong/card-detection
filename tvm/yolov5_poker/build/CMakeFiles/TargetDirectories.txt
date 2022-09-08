@@ -1,0 +1,5 @@
+/home/wgzhong/card-detection/tvm/yolov5_poker/build/CMakeFiles/rebuild_cache.dir
+/home/wgzhong/card-detection/tvm/yolov5_poker/build/CMakeFiles/edit_cache.dir
+/home/wgzhong/card-detection/tvm/yolov5_poker/build/CMakeFiles/delopy.dir
+/home/wgzhong/card-detection/tvm/yolov5_poker/build/CMakeFiles/package_source.dir
+/home/wgzhong/card-detection/tvm/yolov5_poker/build/CMakeFiles/package.dir

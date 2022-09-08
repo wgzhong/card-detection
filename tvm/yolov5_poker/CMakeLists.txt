@@ -7,7 +7,7 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-set(TVM_PATH /home/pi/tvm)
+set(TVM_PATH /home/wgzhong/tvm)
 set(OPENCV_PATH /usr/local/include)
 set(OPENCV_LIBS /usr/local/lib)
 
@@ -31,5 +31,9 @@ target_link_libraries(delopy ${OPENCV_LIBS}/libopencv_imgcodecs.so)
 target_link_libraries(delopy ${OPENCV_LIBS}/libopencv_videoio.so)
 target_link_libraries(delopy ${OPENCV_LIBS}/libopencv_video.so)
 
-target_link_libraries(delopy stdc++fs dl pthread wiringPi) #wiringPi
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
+    target_link_libraries(delopy stdc++fs dl pthread wiringPi)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+    target_link_libraries(delopy stdc++fs dl pthread)
+endif()
 

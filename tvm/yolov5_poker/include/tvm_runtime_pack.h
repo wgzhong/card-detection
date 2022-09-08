@@ -38,19 +38,19 @@
  *
  */
 #define TVM_USE_LIBBACKTRACE 0
-#include "/home/pi/tvm/src/runtime/c_runtime_api.cc"
-#include "/home/pi/tvm/src/runtime/container.cc"
-#include "/home/pi/tvm/src/runtime/cpu_device_api.cc"
-#include "/home/pi/tvm/src/runtime/file_utils.cc"
-#include "/home/pi/tvm/src/runtime/library_module.cc"
-#include "/home/pi/tvm/src/runtime/logging.cc"
-#include "/home/pi/tvm/src/runtime/module.cc"
-#include "/home/pi/tvm/src/runtime/ndarray.cc"
-#include "/home/pi/tvm/src/runtime/object.cc"
-#include "/home/pi/tvm/src/runtime/registry.cc"
-#include "/home/pi/tvm/src/runtime/thread_pool.cc"
-#include "/home/pi/tvm/src/runtime/threading_backend.cc"
-#include "/home/pi/tvm/src/runtime/workspace_pool.cc"
+#include "/home/wgzhong/tvm/src/runtime/c_runtime_api.cc"
+#include "/home/wgzhong/tvm/src/runtime/container.cc"
+#include "/home/wgzhong/tvm/src/runtime/cpu_device_api.cc"
+#include "/home/wgzhong/tvm/src/runtime/file_utils.cc"
+#include "/home/wgzhong/tvm/src/runtime/library_module.cc"
+#include "/home/wgzhong/tvm/src/runtime/logging.cc"
+#include "/home/wgzhong/tvm/src/runtime/module.cc"
+#include "/home/wgzhong/tvm/src/runtime/ndarray.cc"
+#include "/home/wgzhong/tvm/src/runtime/object.cc"
+#include "/home/wgzhong/tvm/src/runtime/registry.cc"
+#include "/home/wgzhong/tvm/src/runtime/thread_pool.cc"
+#include "/home/wgzhong/tvm/src/runtime/threading_backend.cc"
+#include "/home/wgzhong/tvm/src/runtime/workspace_pool.cc"
 
 // NOTE: all the files after this are optional modules
 // that you can include remove, depending on how much feature you use.
@@ -58,17 +58,17 @@
 // Likely we only need to enable one of the following
 // If you use Module::Load, use dso_module
 // For system packed library, use system_lib_module
-#include "/home/pi/tvm/src/runtime/dso_library.cc"
-#include "/home/pi/tvm/src/runtime/system_library.cc"
+#include "/home/wgzhong/tvm/src/runtime/dso_library.cc"
+#include "/home/wgzhong/tvm/src/runtime/system_library.cc"
 
 // Graph executor
-#include "/home/pi/tvm/src/runtime/graph_executor/graph_executor.cc"
-#include "/home/pi/tvm/src/runtime/graph_executor/graph_executor_factory.cc"
+#include "/home/wgzhong/tvm/src/runtime/graph_executor/graph_executor.cc"
+#include "/home/wgzhong/tvm/src/runtime/graph_executor/graph_executor_factory.cc"
 
 // Uncomment the following lines to enable RPC
-// #include "/home/pi/tvm/src/runtime/rpc/rpc_session.cc"
-// #include "/home/pi/tvm/src/runtime/rpc/rpc_event_impl.cc"
-// #include "/home/pi/tvm/src/runtime/rpc/rpc_server_env.cc"
+// #include "/home/wgzhong/tvm/src/runtime/rpc/rpc_session.cc"
+// #include "/home/wgzhong/tvm/src/runtime/rpc/rpc_event_impl.cc"
+// #include "/home/wgzhong/tvm/src/runtime/rpc/rpc_server_env.cc"
 
 // These macros enables the device API when uncommented.
 #define TVM_CUDA_RUNTIME 1
@@ -76,13 +76,13 @@
 #define TVM_OPENCL_RUNTIME 1
 
 // Uncomment the following lines to enable Metal
-// #include "/home/pi/tvm/src/runtime/metal/metal_device_api.mm"
-// #include "/home/pi/tvm/src/runtime/metal/metal_module.mm"
+// #include "/home/wgzhong/tvm/src/runtime/metal/metal_device_api.mm"
+// #include "/home/wgzhong/tvm/src/runtime/metal/metal_module.mm"
 
 // Uncomment the following lines to enable CUDA
-// #include "/home/pi/tvm/src/runtime/cuda/cuda_device_api.cc"
-// #include "/home/pi/tvm/src/runtime/cuda/cuda_module.cc"
+// #include "/home/wgzhong/tvm/src/runtime/cuda/cuda_device_api.cc"
+// #include "/home/wgzhong/tvm/src/runtime/cuda/cuda_module.cc"
 
 // Uncomment the following lines to enable OpenCL
-// #include "/home/pi/tvm/src/runtime/opencl/opencl_device_api.cc"
-// #include "/home/pi/tvm/src/runtime/opencl/opencl_module.cc"
+// #include "/home/wgzhong/tvm/src/runtime/opencl/opencl_device_api.cc"
+// #include "/home/wgzhong/tvm/src/runtime/opencl/opencl_module.cc"

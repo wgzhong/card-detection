@@ -4,7 +4,9 @@
 #include "tool.h"
 #include "data_process.h"
 #include "cal_time.h"
-
+#include <tvm/runtime/module.h>
+#include <tvm/runtime/registry.h>
+#include <tvm/runtime/packed_func.h>
 class entrance{
 float CONF_THRES = 0.025;
 float IOU_THRES = 0.6;
@@ -22,7 +24,7 @@ public:
         // m_output_shape=(20*20+40*40+80*80)*3;//三路输出的特征图大小，每个cell有3个检测框
         m_output_shape = 1008;
         m_dev = {kDLCPU, 0};
-        m_cam = new CaperaCapture(0, m_width, m_hight);
+        // m_cam = new CaperaCapture(0, m_width, m_hight);
         m_x = tvm::runtime::NDArray::Empty({1, m_depth, m_width, m_hight}, DLDataType{kDLFloat, 32, 1}, m_dev);
         m_y = tvm::runtime::NDArray::Empty({1, m_output_shape, m_dims}, DLDataType{kDLFloat, 32, 1}, m_dev);
     }
@@ -30,6 +32,7 @@ public:
     void init(std::string class_path, std::string lib_path){
         LOG(INFO) << "init model..................";
         m_label = read_label(class_path);
+        LOG(INFO) << "read_label..................";
         m_mod_factory = tvm::runtime::Module::LoadFromFile(lib_path);
         m_gmod = m_mod_factory.GetFunction("default")(m_dev);
         m_set_input = m_gmod.GetFunction("set_input");
@@ -37,15 +40,50 @@ public:
         m_run = m_gmod.GetFunction("run");
     }
 
+    void init(std::string class_path, std::string graph_path, 
+                std::string lib_path, std::string params_path){
+        LOG(INFO) << "init model..................";
+        m_label = read_label(class_path);
+        LOG(INFO) << "read_label..................";
+        tvm::runtime::Module mod_dylib = tvm::runtime::Module::LoadFromFile(lib_path) ;
+        std::ifstream json_in(graph_path);
+        if(json_in.fail()){
+            throw std::runtime_error("could not open json file");
+        }
+        std::ifstream params_in(params_path, std::ios::binary);
+        if(params_in.fail()){
+            throw std::runtime_error("could not open json file");
+        }
+        const std::string json_data((std::istreambuf_iterator<char>(json_in)),
+                               std::istreambuf_iterator<char>());
+        json_in.close();
+        const std::string params_data((std::istreambuf_iterator<char>(params_in)),
+                                        std::istreambuf_iterator<char>());
+        params_in.close();
+        TVMByteArray params_arr;
+        params_arr.data = params_data.c_str();
+        params_arr.size = params_data.length();
+        int device_type = kDLCPU;
+        int device_id = 0;
+        tvm::runtime::Module mod = 
+           (*tvm::runtime::Registry::Get("tvm.graph_executor.create"))(json_data,
+                                                                mod_dylib, device_type, device_id);
+        tvm::runtime::PackedFunc load_params = mod.GetFunction("load_params");
+        load_params(params_arr);
+        m_set_input = mod.GetFunction("set_input");
+        m_get_output = mod.GetFunction("get_output");
+        m_run = mod.GetFunction("run");    
+        LOG(INFO) << "init done..................";                                                    
+    }
     void run_cam(){
         cv::Mat input_image;
-        m_cam->getimage(input_image);
-        // input_image=cv::imread("/home/wgzhong/datasets/poker_new/train/images/poker_452.jpg");//test
+        // m_cam->getimage(input_image);
+        input_image=cv::imread("/home/wgzhong/datasets/poker_new/train/images/poker_0.jpg");//test
         assert(!m_input_image.empty());
         process_image(input_image, m_data, m_width, m_hight); 
         //load_input_hex("/home/wgzhong/card-detection/tvm/yolov5_poker/python/cam_image.bin", data);
         // dump_data<float>(m_data, "./input_cpp.bin", m_width * m_hight * m_depth*4);//float
-        memcpy(m_x->data, m_data, m_depth * m_width * m_hight*4);
+        memcpy(m_x->data, m_data, m_depth * m_width * m_hight*2);
     }
     void run(tvm::runtime::NDArray x){
         LOG(INFO) << "run model..................";
@@ -101,7 +139,7 @@ private:
     tvm::runtime::NDArray m_x;
     tvm::runtime::NDArray m_y;
 
-    CaperaCapture *m_cam;
+    // CaperaCapture *m_cam;
 };
 
 int main(int argc, char **argv){
@@ -117,34 +155,35 @@ int main(int argc, char **argv){
     if(argc == 5){
         test = true;
     }
-
-    uart *ser = new uart(8, 32);
     entrance enter(width, hight, depth);
+    
     enter.run_cam();
-    enter.init("./classes.txt", "./relay_yolov5s.so");
+    // enter.init("./classes.txt", "./relay_yolov5s.so");
+    enter.init("./classes.txt", "./3p/yolov5s_poker_llvm.json", "./3p/yolov5s_poker_llvm.so", "./3p/yolov5s_poker_llvm.params");
     if(test){
         enter.run(enter.get_x());
         enter.print_output();
         return 0;
     }
-    enter.run(enter.get_x());
-    enter.print_output();  
-    bool flag = ser->uartInit((char*)"/dev/ttyAMA0", 115200);
-    assert(!flag); 
-    LOG(INFO)<<"init ok";   
+    // enter.run(enter.get_x());
+    // enter.print_output();  
+    // uart *ser = new uart(8, 32);
+    // bool flag = ser->uartInit((char*)"/dev/ttyAMA0", 115200);
+    // assert(!flag); 
+    // LOG(INFO)<<"init ok";   
     
-    while (1)    
-    {   
-        enter.run_cam();
-        bool uart_flag = ser->uartRecv();    
-        if(uart_flag && ser->isCorrect()){  
-            enter.run(enter.get_x());
-            std::vector<ground_truth> output = enter.get_output();
-            std::vector<std::string> labels = enter.get_label();
-            ser->uartSend(output, labels);
-            enter.print_output();
-        }           
-    }   
+    // while (1)    
+    // {   
+    //     enter.run_cam();
+    //     bool uart_flag = ser->uartRecv();    
+    //     if(uart_flag && ser->isCorrect()){  
+    //         enter.run(enter.get_x());
+    //         std::vector<ground_truth> output = enter.get_output();
+    //         std::vector<std::string> labels = enter.get_label();
+    //         ser->uartSend(output, labels);
+    //         enter.print_output();
+    //     }           
+    // }   
     return 0;
 }
 

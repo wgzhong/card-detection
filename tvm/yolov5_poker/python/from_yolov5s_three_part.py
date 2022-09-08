@@ -8,6 +8,7 @@ from tvm.contrib import utils
 from general import non_max_suppression
 import time
 from tvm.contrib import graph_executor
+ROOT_PATH = "/home/wgzhong/card-detection/"
 
 def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=False, scaleFill=False, scaleup=True, stride=32):
     # Resize and pad image while meeting stride-multiple constraints
@@ -41,7 +42,7 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=False, scale
     im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
     return im, ratio, (dw, dh)
 
-def load_image(path, size):
+def load_image(path, size, dtype):
     img0 = cv2.imread(path) # BGR
     assert img0 is not None, f'Image Not Found'
     # Padded resize
@@ -56,6 +57,7 @@ def load_image(path, size):
     # img.tofile("cam_image.bin")
     if img.ndimension() == 3: 
         img = img.unsqueeze(0)
+    img = np.array(img).astype(dtype)
     return img
 
 def load_three_part(graph_json_path, libpath, param_path):
@@ -73,7 +75,10 @@ def run_cpu(graph, lib, params, data):
     module = graph_runtime.create(graph, lib, ctx)
     module.load_params(params)
     module.set_input("images", data)
+    start = time.time()
     module.run()
+    end = time.time()
+    print(end-start)
     out_deploy = module.get_output(0).asnumpy()
     out_deploy = torch.from_numpy(out_deploy)
     print(out_deploy.shape)
@@ -83,7 +88,10 @@ def run_cpu_lib(graph_lib, name, data):
     ctx = tvm.cpu()
     m = graph_executor.GraphModule(graph_lib["default"](ctx))
     m.set_input("images", tvm.nd.array(data))
+    start = time.time()
     m.run()
+    end = time.time()
+    print(end-start)
     out_deploy = m.get_output(0).asnumpy()
     out_deploy = torch.from_numpy(out_deploy)
     return out_deploy
@@ -97,16 +105,15 @@ def reauslt(out_deploy):
 
 def run():
     img_size = 128
-    img = load_image('/home/wgzhong/card-detection/tvm/data/a.jpg', img_size)
-    # graph, lib, params = load_three_part("./yolo5s_poker.json", "./yolo5s_poker.tar", "./yolo5s_poker.params")
-    mod_lib = load_graph_lib("./relay_yolov5s_int8.so")
-    # mod_lib = tvm.runtime.load_module("relay_yolov5s.tar")
-
-    start = time.time()
-    output = run_cpu_lib(mod_lib, "YOLOV5S", img)
-    # output = run_cpu(graph, lib, params, img)
+    dtype = "float32"
+    
+    img = load_image(ROOT_PATH + 'tvm/data/poker_452.jpg', img_size, dtype)
+    graph, lib, params = load_three_part("./3p/yolov5s_poker_llvm.json", "./3p/yolov5s_poker_llvm.so", "./3p/yolov5s_poker_llvm.params")
+    output = run_cpu(graph, lib, params, img)
     reauslt(output)
-    end = time.time()
-    print(end-start)
-
+    
+    # mod_lib = load_graph_lib("./relay_yolov5s.so")
+    # output = run_cpu_lib(mod_lib, "YOLOV5S", img)
+    # reauslt(output)
+    
 run()
